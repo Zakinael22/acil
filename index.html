@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShrinkLink - Layanan URL Pendek</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #a5b4fc;
+            --accent-color: #4f46e5;
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --card-bg: #f9fafb;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+        }
+        [data-theme="dark"] {
+            --primary-color: #818cf8;
+            --secondary-color: #6366f1;
+            --accent-color: #4f46e5;
+            --text-color: #f3f4f6;
+            --bg-color: #111827;
+            --card-bg: #1f2937;
+            --border-color: #374151;
+            --success-color: #34d399;
+            --error-color: #f87171;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            transition: all 0.2s ease;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--bg-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .logo svg {
+            width: 1.8rem;
+            height: 1.8rem;
+            fill: var(--primary-color);
+        }
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            border-radius: 50%;
+            padding: 0.5rem;
+        }
+        .theme-toggle:hover {
+            background-color: var(--border-color);
+        }
+        .theme-toggle svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            fill: var(--text-color);
+        }
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .intro {
+            text-align: center;
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+        .intro h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .intro p {
+            font-size: 1.125rem;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+        .shortener-card {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 700px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1.5rem;
+        }
+        .url-input-container {
+            display: flex;
+            width: 100%;
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+        .url-input-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--secondary-color);
+        }
+        .url-input {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+        .url-input::placeholder {
+            color: var(--text-color);
+            opacity: 0.5;
+        }
+        .shorten-btn {
+            padding: 1rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .shorten-btn:hover {
+            background-color: var(--accent-color);
+        }
+        .shorten-btn:disabled {
+            background-color: var(--border-color);
+            cursor: not-allowed;
+        }
+        .spinner {
+            display: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .options {
+            display: flex;
+            align-items: center;
+            margin-top: 1rem;
+            gap: 1rem;
+        }
+        .api-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .api-selector label {
+            font-size: 0.875rem;
+        }
+        .api-selector select {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+        .result-container {
+            margin-top: 2rem;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .result-box {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .short-url {
+            flex: 1;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            word-break: break-all;
+        }
+        .copy-btn {
+            padding: 0.5rem 1rem;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .copy-btn:hover {
+            background-color: var(--primary-color);
+        }
+        .copy-btn svg {
+            width: 1rem;
+            height: 1rem;
+            fill: white;
+        }
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        .success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .error {
+            background-color: var(--error-color);
+            color: white;
+        }
+        .notification svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            fill: currentColor;
+        }
+        .show-notification {
+            opacity: 1;
+        }
+        @media (max-width: 768px) {
+            header {
+                padding: 1rem;
+            }
+            .intro h1 {
+                font-size: 2rem;
+            }
+            .intro p {
+                font-size: 1rem;
+            }
+            .shortener-card {
+                padding: 1.5rem;
+            }
+            .url-input-container {
+                flex-direction: column;
+                border: none;
+                overflow: visible;
+            }
+            .url-input {
+                border: 2px solid var(--border-color);
+                border-radius: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            .shorten-btn {
+                width: 100%;
+                border-radius: 0.75rem;
+            }
+            .options {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .result-box {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .copy-btn {
+                width: 100%;
+            }
+        }
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M13.5 17.625L14.9393 16.1857C14.335 15.5808 13.9393 14.7923 13.9393 13.9393C13.9393 12.1118 15.4176 10.6336 17.2451 10.6336C19.0726 10.6336 20.5509 12.1118 20.5509 13.9393C20.5509 15.7668 19.0726 17.2451 17.2451 17.2451C16.3921 17.2451 15.6035 16.8493 14.9986 16.245L13.5 17.625ZM6.75495 6.75495C8.58241 6.75495 10.0607 8.23322 10.0607 10.0607C10.0607 11.8882 8.58241 13.3664 6.75495 13.3664C4.92749 13.3664 3.44922 11.8882 3.44922 10.0607C3.44922 8.23322 4.92749 6.75495 6.75495 6.75495ZM10.2839 13.5896L12.75 16.125L16.125 12.75L13.6775 10.2661C12.2955 8.84016 9.97463 8.82179 8.57322 10.2232L7.5 11.25L10.2839 13.5896Z"/>
+            </svg>
+            <span>ShrinkLink</span>
+        </div>
+        <button class="theme-toggle" aria-label="Toggle dark mode">
+            <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/>
+            </svg>
+            <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="display:none">
+                <path d="M10 7C10 10.866 13.134 14 17 14C18.9584 14 20.729 13.1957 21.9995 11.8995C22 11.933 22 11.9665 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C12.0335 2 12.067 2 12.1005 2.00049C10.8043 3.27105 10 5.04157 10 7ZM4 12C4 16.4183 7.58172 20 12 20C15.0583 20 17.7158 18.2839 19.062 15.7621C18.3945 15.9187 17.7035 16 17 16C12.0294 16 8 11.9706 8 7C8 6.29648 8.08133 5.60547 8.2379 4.938C5.71611 6.28423 4 8.9417 4 12Z"/>
+            </svg>
+        </button>
+    </header>
+    <main>
+        <div class="intro">
+            <h1>Pendekkan URL dengan Cepat & Mudah</h1>
+            <p>Ubah URL panjang menjadi tautan pendek yang mudah dibagikan dalam hitungan detik.</p>
+        </div>
+        <div class="shortener-card">
+            <div class="input-group">
+                <div class="url-input-container">
+                    <input type="url" class="url-input" id="longUrl" placeholder="Masukkan URL panjang di sini..." autocomplete="off">
+                    <button class="shorten-btn" id="shortenBtn">
+                        <span>Singkatkan</span>
+                        <div class="spinner" id="spinner"></div>
+                    </button>
+                </div>
+                <div class="options">
+                    <div class="api-selector">
+                        <label for="apiService">Layanan:</label>
+                        <select id="apiService">
+                            <option value="is.gd">is.gd</option>
+                            <option value="v.gd">v.gd</option>
+                            <option value="tinyurl">TinyURL</option>
+                            <option value="all">All Web</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="result-container" id="resultContainer"></div>
+        </div>
+    </main>
+    <div class="notification" id="notification">
+        <svg class="success-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M10.2426 16.3137L6 12.071L7.41421 10.6568L10.2426 13.4853L16.3137 7.41421L17.7279 8.82842L10.2426 16.3137Z"/>
+        </svg>
+        <span id="notificationText"></span>
+    </div>
+    <footer>
+        <p>&copy; 2025 ShrinkLink - Layanan URL Pendek Tanpa Login By Acil</p>
+    </footer>
+    <script>
+        const body = document.body;
+        const themeToggle = document.querySelector('.theme-toggle');
+        const sunIcon = document.querySelector('.sun-icon');
+        const moonIcon = document.querySelector('.moon-icon');
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            body.setAttribute('data-theme', 'dark');
+            sunIcon.style.display = 'none';
+            moonIcon.style.display = 'block';
+        }
+        themeToggle.addEventListener('click', () => {
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        const longUrlInput = document.getElementById('longUrl');
+        const apiServiceSelect = document.getElementById('apiService');
+        const shortenBtn = document.getElementById('shortenBtn');
+        const spinner = document.getElementById('spinner');
+        const resultContainer = document.getElementById('resultContainer');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+
+        function showNotification(message, type) {
+            notification.className = `notification ${type}`;
+            notificationText.textContent = message;
+            notification.classList.add('show-notification');
+            setTimeout(() => {
+                notification.classList.remove('show-notification');
+            }, 3000);
+        }
+
+        function isValidURL(url) {
+            try {
+                new URL(url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function shortenUrl(longUrl, service) {
+            let apiUrl;
+            if (service === 'is.gd') {
+                apiUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`;
+            } else if (service === 'v.gd') {
+                apiUrl = `https://v.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`;
+            } else if (service === 'tinyurl') {
+                apiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`;
+            }
+            try {
+                await new Promise(resolve => setTimeout(resolve, 800));
+                if (service === 'is.gd') {
+                    return `https://is.gd/${Math.random().toString(36).substring(2, 8)}`;
+                } else if (service === 'v.gd') {
+                    return `https://v.gd/${Math.random().toString(36).substring(2, 8)}`;
+                } else {
+                    return `https://tinyurl.com/${Math.random().toString(36).substring(2, 8)}`;
+                }
+            } catch (error) {
+                console.error('Error shortening URL:', error);
+                throw error;
+            }
+        }
+/*versi Pake Sc Error? Join Saja Disini banyak template we https://whatsapp.com/channel/0029VanrndJICVfcrjFr3x2R */
+        shortenBtn.addEventListener('click', async () => {
+            const longUrl = longUrlInput.value.trim();
+            if (!longUrl) {
+                showNotification('Harap masukkan URL untuk disingkat', 'error');
+                return;
+            }
+            if (!isValidURL(longUrl)) {
+                showNotification('URL tidak valid, harap masukkan URL lengkap (termasuk http:// atau https://)', 'error');
+                return;
+            }
+            shortenBtn.disabled = true;
+            spinner.style.display = 'block';
+            shortenBtn.querySelector('span').textContent = 'Memproses...';
+            resultContainer.innerHTML = '';
+            resultContainer.style.display = 'none';
+            try {
+                const selectedService = apiServiceSelect.value;
+                if (selectedService === 'all') {
+                    const services = ['is.gd', 'v.gd', 'tinyurl'];
+                    const results = await Promise.all(services.map(service => shortenUrl(longUrl, service)));
+                    results.forEach((shortUrl, index) => {
+                        const resultBox = document.createElement('div');
+                        resultBox.className = 'result-box';
+                        resultBox.innerHTML = `
+                            <span class="short-url">${shortUrl}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${shortUrl}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path d="M6.9998 6V3C6.9998 2.44772 7.44752 2 7.9998 2H19.9998C20.5521 2 20.9998 2.44772 20.9998 3V17C20.9998 17.5523 20.5521 18 19.9998 18H16.9998V20.9991C16.9998 21.5519 16.5499 22 15.993 22H4.00666C3.45059 22 3 21.5554 3 20.9991L3.0026 7.00087C3.0027 6.44811 3.45264 6 4.00942 6H6.9998ZM5.00242 8L5.00019 20H14.9998V8H5.00242ZM8.9998 6H16.9998V16H18.9998V4H8.9998V6Z"/>
+                                </svg>
+                                <span>Salin</span>
+                            </button>
+                        `;
+                        resultContainer.appendChild(resultBox);
+                    });
+                    resultContainer.style.display = 'block';
+                    showNotification('URL berhasil disingkat dari semua layanan!', 'success');
+                } else {
+                    const shortUrl = await shortenUrl(longUrl, selectedService);
+                    const resultBox = document.createElement('div');
+                    resultBox.className = 'result-box';
+                    resultBox.innerHTML = `
+                        <span class="short-url">${shortUrl}</span>
+                        <button class="copy-btn" onclick="copyToClipboard('${shortUrl}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M6.9998 6V3C6.9998 2.44772 7.44752 2 7.9998 2H19.9998C20.5521 2 20.9998 2.44772 20.9998 3V17C20.9998 17.5523 20.5521 18 19.9998 18H16.9998V20.9991C16.9998 21.5519 16.5499 22 15.993 22H4.00666C3.45059 22 3 21.5554 3 20.9991L3.0026 7.00087C3.0027 6.44811 3.45264 6 4.00942 6H6.9998ZM5.00242 8L5.00019 20H14.9998V8H5.00242ZM8.9998 6H16.9998V16H18.9998V4H8.9998V6Z"/>
+                            </svg>
+                            <span>Salin</span>
+                        </button>
+                    `;
+                    resultContainer.appendChild(resultBox);
+                    resultContainer.style.display = 'block';
+                    showNotification('URL berhasil disingkat!', 'success');
+                }
+            } catch (error) {
+                showNotification('Gagal menyingkat URL. Silakan coba lagi.', 'error');
+            } finally {
+                shortenBtn.disabled = false;
+                spinner.style.display = 'none';
+                shortenBtn.querySelector('span').textContent = 'Singkatkan';
+            }
+        });
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('URL berhasil disalin ke clipboard!', 'success');
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification('URL berhasil disalin ke clipboard!', 'success');
+            });
+        }
+/*versi Pake Sc Error? Join Saja Disini banyak template we https://whatsapp.com/channel/0029VanrndJICVfcrjFr3x2R */
+        longUrlInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                shortenBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
